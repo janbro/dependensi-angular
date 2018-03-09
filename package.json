@@ -1,0 +1,26 @@
+{
+  "name": "dependensi",
+  "version": "0.0.1",
+  "description": "A set of tools to generate a dependencies graph of an Angular application",
+  "scripts": {
+    "build": "tsc src/index.ts --m commonjs --outDir dist/",
+    "analyze": "node src/index.js",
+    "serve": "http-server",
+    "ci:test": "jasmine"
+  },
+  "author": "Alejandro Munoz",
+  "engines": {
+    "node": ">= 5.4.1"
+  },
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@types/node": "^6.0.39",
+    "rimraf": "^2.6.1",
+    "safe-json-stringify": "^1.0.4",
+    "typescript": "^2.4.1",
+    "vis": "^4.20.1"
+  },
+  "main": "dist/index.js",
+  "devDependencies": {}
+}

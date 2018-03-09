@@ -1,0 +1,142 @@
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script type="text/javascript" src="node_modules/vis/dist/vis.js"></script>
+    <link href="node_modules/vis/dist/vis.css" rel="stylesheet" type="text/css" />
+
+    <style type="text/css">
+        #mynetwork {
+          width: 100%;
+          height: 100%;
+          border: 1px solid lightgray;
+        }
+        .component-info {
+          position: absolute;
+          max-width: 700px;
+          white-space: pre-wrap;
+          top: 15px;
+          right: 20;
+          text-align: left;
+          z-index: 99;
+          background-color: rgba(255,255,255,.6);
+        }
+    </style>
+</head>
+<body>
+<img style="position: absolute; display: block; width: 8%; z-index: 2; pointer-events: none;" src="/res/legend.png"></img>
+<div class="component-info">
+</div>
+<div id="mynetwork"></div>
+
+<script type="text/javascript">
+    var maps = $.ajax({url: '/output/dependenSiMap.json?' + String(Math.random()), async: false}).responseJSON;
+
+    // create an array with nodes
+    var nodes = new vis.DataSet(maps);
+
+    var mapedges = $.ajax({url: '/output/dependenSiMapEdges.json?' + String(Math.random()), async: false}).responseJSON;
+
+    // create an array with edges
+    var edges = new vis.DataSet(mapedges);
+
+    // create a network
+    var container = document.getElementById('mynetwork');
+
+    // legend
+    // var mynetwork = document.getElementById('mynetwork');
+    // var x = - mynetwork.clientWidth + 50;
+    // var y = - mynetwork.clientHeight + 50;
+    // var step = 70;
+    // nodes.add({id: 1000, x: x, y: y, label: 'Module', shape: "square", color: { background: "#c7a3f7", border: "#896ead", highlight: { background:  "#c7a3f7" , border: "#896ead"} }, value: 10, fixed: true, physics:false});
+    // nodes.add({id: 1001, x: x, y: y + step, label: 'Component', shape: "square", color: { background: "#82b2ff", border: "#6083bc", highlight: { background:  "#82b2ff" , border: "#6083bc"}  }, value: 10, fixed: true,  physics:false});
+    // nodes.add({id: 1002, x: x, y: y + 2 * step, label: 'Injectable', shape: "square", color: { background: "#f7f5a3", border: "#a09f6b", highlight: { background:  "#f7f5a3" , border: "#a09f6b"}  }, value: 10, fixed: true,  physics:false});
+    // nodes.add({id: 1003, x: x, y: y + 3 * step, label: 'Router Link', shape: "square", color: { background: "#93ffa0", border: "#5ea366", highlight: { background:  "#93ffa0" , border: "#5ea366"}  }, value: 10, fixed: true,  physics:false});
+    // nodes.add({id: 1004, x: x, y: y + 4 * step, label: 'None', shape: "square", color: { background: "#c9c9c9", border: "#9e9e9e", highlight: { background:  "#c9c9c9" , border: "#9e9e9e"}  }, value: 10, fixed: true,  physics:false});
+
+    // provide the data in the vis format
+    var data = {
+        nodes: nodes,
+        edges: edges
+    };
+
+    var options = {
+        nodes: {
+            shape: 'ellipse',
+            size: 30,
+            borderWidth: 2
+        },
+        edges: {
+            width: 2
+        }
+    };
+
+    // initialize your network!
+    var network = new vis.Network(container, data, options);
+
+    network.on('click', function(properties) {
+      var infoResult = "";
+      var ids = properties.nodes;
+      var clickedNodes = nodes.get(ids);
+      if(clickedNodes.length > 0) {
+        var info = clickedNodes[0].title.split('\n');
+        let infoMap = {};
+        info.forEach((item) => {
+          if(item) { infoMap[item.split(':')[0]] = item.split(':')[1].substring(1); }
+        });
+        Object.keys(infoMap).forEach(key => {
+          infoResult += "<b>" + key + ": </b>";
+          infoResult += "<a>" + infoMap[key] + "</a><br>";
+        });
+        $('.component-info')[0].innerHTML = infoResult;
+      } else {
+        $('.component-info')[0].innerHTML = "";
+      }
+    });
+</script>
+<script>
+  //Page Object git change mapping
+
+  let dependSi = $.ajax({url: '/output/dependenSi.json?' + String(Math.random()), async: false}).responseJSON;
+  let dependSiRoutes = $.ajax({url: '/output/dependenSiRoutes.json?' + String(Math.random()), async: false}).responseJSON;
+
+  //File changes
+  let changes = $.ajax({url: '/output/changedfiles.json?' + String(Math.random()), async: false}).responseJSON;
+
+  let hasDeepChild = function(head, filename) {
+    if(head.dir && (head.dir + head.filename).endsWith(filename)) return true;
+    if(head.importcomponents) {
+      if(head.importcomponents.some(item => hasDeepChild(item, filename))) return true;
+    }
+    if(head.htmlcomponents) {
+      return head.htmlcomponents.some(item => hasDeepChild(item, filename));
+    }
+    return false;
+  }
+
+  let isRoute = function(routes, comp) {
+    return routes.some(route => {
+      if(route.component && comp.name && route.component === comp.name) return true;
+      if(route.children) return isRoute(route.children, comp);
+    });
+    return false;
+  }
+
+  let affectedPOs = new Set();
+
+  dependSi.forEach((item) => {
+    changes.forEach(change => {
+      if(hasDeepChild(item, change)) {
+        if(isRoute(dependSiRoutes, item)) {
+          console.log(change);
+          console.log(item.name);
+          affectedPOs.add(item.name);
+        }
+      }
+    });
+  });
+
+  console.log(affectedPOs);
+
+</script>
+</body>
+</html>
