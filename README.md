@@ -2,6 +2,8 @@
 Generates component dependency graphs for Angular2+ projects.
 
 ## Usage
+`npm run build`
+
 `npm run analyze -- '[angularprojectdir]/app.module.ts'`
 
 `npm run serve`
